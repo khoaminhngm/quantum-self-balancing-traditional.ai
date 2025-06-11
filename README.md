@@ -30,7 +30,6 @@ StudyBot is a small self-balancing robot that hangs out on your desk while you s
 | Microphone              | INMP441       |
 | Bluetooth               | JDY-31        |
 | Line Sensor             | TCRT5000      |
-| Other stuff             | Buttons, breadboard, cables |
 
 ---
 
