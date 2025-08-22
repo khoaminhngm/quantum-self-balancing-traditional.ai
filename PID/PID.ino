@@ -6,15 +6,15 @@
 #include <AsyncTCP.h>
 #include <ArduinoOTA.h>
 
-const char* ssid = "ssid";
-const char* password = "password";
+const char* ssid = "Vinaheim2.0_EXT";
+const char* password = "KTXaachen20";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 float accelPitch, gyroPitch, pitchAngle;
 float kalmanPitch = 0.0; // Kalmanstate
-float setPoint = -2.0;
+float setPoint = 0.0;
 
 unsigned long timeCurrent = 0;
 unsigned long timePrev = 0;
@@ -75,12 +75,17 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   <div class="slider-container">
     <label>K<sub>I</sub>: <span id="kiVal">0</span></label><br>
-    <input type="range" id="ki" min="0" max="100" value="0">
+    <input type="range" id="ki" min="0" max="4" value="0" step="0.01">
   </div>
 
   <div class="slider-container">
     <label>K<sub>D</sub>: <span id="kdVal">0</span></label><br>
-    <input type="range" id="kd" min="0" max="500" value="0">
+    <input type="range" id="kd" min="0" max="70" value="0" step="0.1">
+  </div>
+
+  <div class="slider-container">
+    <label>setpoint: <span id="spVal">0</span></label><br>
+    <input type="range" id="sp" min="-10" max="10" value="0" step="0.1">
   </div>
 
   <canvas id="plot"></canvas>
@@ -96,7 +101,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       console.log('Connection closed');
     }
 
-    const sliders = ['kp', 'ki', 'kd'];
+    const sliders = ['kp', 'ki', 'kd', 'sp'];
 
     sliders.forEach(id => {
       const slider = document.getElementById(id);
@@ -109,7 +114,8 @@ const char index_html[] PROGMEM = R"rawliteral(
           // Send format: "P:100,I:1.5,D:20"
           const data = `P:${document.getElementById('kp').value},` +
                        `I:${document.getElementById('ki').value},` +
-                       `D:${document.getElementById('kd').value}`;
+                       `D:${document.getElementById('kd').value},` +
+                       `S:${document.getElementById('sp').value},`;
           console.log(data);
           ws.send(data);
         }
@@ -173,15 +179,18 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
     int pIndex = msg.indexOf("P:");
     int iIndex = msg.indexOf("I:");
     int dIndex = msg.indexOf("D:");
+    int spIndex = msg.indexOf("S:");
 
-    if (pIndex >= 0 && iIndex >= 0 && dIndex >= 0) {
+    if (pIndex >= 0 && iIndex >= 0 && dIndex >= 0 && spIndex >= 0) {
       float newP = msg.substring(pIndex + 2, iIndex - 1).toFloat();
       float newI = msg.substring(iIndex + 2, dIndex - 1).toFloat();
-      float newD = msg.substring(dIndex + 2).toFloat();
+      float newD = msg.substring(dIndex + 2, spIndex - 1).toFloat();
+      float newS = msg.substring(spIndex + 2).toFloat();
 
       kP = newP;
       kI = newI;
       kD = newD;
+      setPoint = newS;
 
       // Serial.printf("Updated PID: P=%.2f, I=%.2f, D=%.2f\n", kP, kI, kD);
     }
@@ -317,12 +326,12 @@ void balanceControls()
   //                 ",\"pitch\":" + String(derivative) + "}";
   //   ws.textAll(json);
   // }
-  Serial.print("Proportional:");
-  Serial.print(proportional);
-  Serial.print(",Integral:");
-  Serial.print(integral);
-  Serial.print(",Derivative:");
-  Serial.println(derivative);
+  // Serial.print("Proportional:");
+  // Serial.print(proportional);
+  // Serial.print(",Integral:");
+  // Serial.print(integral);
+  // Serial.print(",Derivative:");
+  // Serial.println(derivative);
   
   signalOutput = constrain(proportional+integral+derivative, -4095, 4095);
   previousAngle = currentAngle;
